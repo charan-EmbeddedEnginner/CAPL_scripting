@@ -1,0 +1,103 @@
+includes
+{
+  
+}
+
+variables
+{
+  byte lstatus,rstatus,hstatus;
+  long i;
+  msTimer leftblinktimer;
+  msTimer rightblinktimer;
+  msTimer hazzardblinktimer;
+  message *m;
+}
+on start{
+  write("indicator ecu...started\n");
+}
+on message 0x100{
+  if(this.byte(0)==0x10){//on headlights
+      @HEADLIGHT::headlight_sysvar=1;
+      write("dashboard ecu-----> headlights on\n");
+  }
+  else{//off headlights
+    @HEADLIGHT::headlight_sysvar=0;
+      write("dashboard ecu-----> headlights off\n");
+  }
+}
+on message 0x200{
+  if(this.byte(0)==0x01){//only left indicator on
+      write("dashboard ecu-----> left indicator on\n"); 
+     cancelTimer(rightblinktimer);
+     canceltimer(hazzardblinktimer);
+     @RINDICATOR::rindicator_sysvar=0;
+     @LINDICATOR::lindicator_sysvar =1;
+     setTimer(leftblinktimer,500);
+     lstatus=1;
+  }
+  else if(this.byte(0)==0x02) {//only right indicator on
+      write("dashboard ecu-----> right indicator on\n");
+      cancelTimer(leftblinktimer);
+      canceltimer(hazzardblinktimer);
+      @LINDICATOR::lindicator_sysvar=0;
+      @RINDICATOR::rindicator_sysvar=1;
+      setTimer(rightblinktimer,500);
+      rstatus=1;
+  }
+  else if(this.byte(0)==0x03){//Hazzard signals
+     write("dashboard ecu-----> Hazzard indicator on\n");
+     cancelTimer(leftblinktimer);
+     cancelTimer(rightblinktimer);
+      @LINDICATOR::lindicator_sysvar=1;
+      @RINDICATOR::rindicator_sysvar=1;
+      hstatus=1;
+      settimer(hazzardblinktimer,500);
+  }
+  else{
+      cancelTimer(leftblinktimer);
+      cancelTimer(rightblinktimer);
+      canceltimer(hazzardblinktimer);
+      @LINDICATOR::lindicator_sysvar=0;
+      @RINDICATOR::rindicator_sysvar=0;
+      write("dashboard ecu-----> both indicators off\n");
+  }
+}
+
+on timer leftblinktimer{
+  if(lstatus==0){
+    @LINDICATOR::lindicator_sysvar=1;
+    lstatus=1;
+  }
+  else{
+    @LINDICATOR::lindicator_sysvar=0;
+    lstatus=0;
+  }
+  setTimer(leftblinktimer,500);
+}
+
+on timer rightblinktimer{
+  if(rstatus==0){
+    @RINDICATOR::rindicator_sysvar=1;
+    rstatus=1;
+  }
+  else{
+    @RINDICATOR::rindicator_sysvar=0;
+    rstatus=0;
+  }
+  setTimer(rightblinktimer,500);
+}
+
+on timer hazzardblinktimer{
+ 
+  if(hstatus==1){//off
+    @LINDICATOR::lindicator_sysvar=0;
+    @RINDICATOR::rindicator_sysvar=0;
+    hstatus=0;
+  }
+  else{
+    @LINDICATOR::lindicator_sysvar=1;
+    @RINDICATOR::rindicator_sysvar=1;
+    hstatus=1;
+  }
+  settimer(hazzardblinktimer,500);
+}
